@@ -11,6 +11,7 @@ private var btnW:float;
 private var btnH:float;
 
 function Start(){
+	refreshHostList();
 	btnX = Screen.width * 0.05;
 	btnY = Screen.width * 0.05;
 	btnW = Screen.width * 0.1;
@@ -18,7 +19,7 @@ function Start(){
 }
 
 function startServer(){
-	Network.InitializeServer(32, 25001, !Network.HavePublicAddress);
+	Network.InitializeServer(1, 25001, !Network.HavePublicAddress);
 	MasterServer.RegisterHost(gameName, "Let's Play", "Tic Tac Toe Game");
 }
 
@@ -33,6 +34,9 @@ function Update(){
 			refreshing = false;
 			hostData = MasterServer.PollHostList();
 			Debug.Log(MasterServer.PollHostList().Length);
+		}
+		else{
+			refreshHostList();
 		}
 	}
 	//Debug.Log(Play.playerID);
@@ -74,21 +78,24 @@ function OnDisconnectedFromServer(){
 // GUI
 function OnGUI(){
 	if(!Network.isClient && !Network.isServer){
-		if(GUI.Button(Rect(btnX,btnY,btnW,btnH), "Start Server")){
-			startServer();
-			Debug.Log("Starting Server");
-		}
-		
-		if(GUI.Button(Rect(btnX, btnY * 1.2 + btnH, btnW, btnH), "Refresh Hosts")){
-			refreshHostList();
-			Debug.Log("Refreshing");
-		}
-		
-		if(hostData){
-			for(var i:int = 0; i<hostData.length; i++){
-				if(GUI.Button(Rect(btnX * 1.5 + btnW, btnY*1.2 + (btnH*1), btnW*3, btnH*0.5), hostData[i].gameName)){
-					Network.Connect(hostData[i]);
+		if(GUI.Button(Rect(btnX,btnY,btnW,btnH), "Play!")){
+			if(hostData != null){
+				for(var i:int = 0; i<hostData.length; i++){
+					if(!Network.isClient){
+						Network.Connect(hostData[i]);
+						Debug.Log("Joining Game");
+						refreshing = false;
+						break;
+					}
+					else{
+						break;
+					}
 				}
+			}
+			else if(!Network.isClient){
+				startServer();
+				refreshing = false;
+				Debug.Log("Starting Server");
 			}
 		}
 	}
