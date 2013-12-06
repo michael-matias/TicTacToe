@@ -11,7 +11,6 @@ private var btnW:float;
 private var btnH:float;
 
 function Start(){
-	refreshHostList();
 	btnX = Screen.width * 0.05;
 	btnY = Screen.width * 0.05;
 	btnW = Screen.width * 0.1;
@@ -19,27 +18,25 @@ function Start(){
 }
 
 function startServer(){
-	Network.InitializeServer(1, 25001, !Network.HavePublicAddress);
+	var number = Random.Range(25000,26000);
+	Network.InitializeServer(1, number, !Network.HavePublicAddress);
 	MasterServer.RegisterHost(gameName, "Let's Play", "Tic Tac Toe Game");
 }
 
-function refreshHostList(){
-	MasterServer.RequestHostList(gameName);
-	refreshing = true;
-}
-
 function Update(){
-	if(refreshing){
-		if(MasterServer.PollHostList().Length > 0){
-			refreshing = false;
-			hostData = MasterServer.PollHostList();
-			Debug.Log(MasterServer.PollHostList().Length);
-		}
-		else{
-			refreshHostList();
+	MasterServer.RequestHostList(gameName);
+	if(MasterServer.PollHostList().Length > 0){
+			
+		var tempHostData : HostData[] = MasterServer.PollHostList();
+		var cont : int = 0;
+		
+		hostData = new HostData[MasterServer.PollHostList().Length];
+		
+		for(var i:int = 0; i<tempHostData.length; i++){	
+			hostData[cont] = tempHostData[i];
+			cont++;
 		}
 	}
-	//Debug.Log(Play.playerID);
 }
 
 // Messages
@@ -51,6 +48,18 @@ function OnServerInitialized(){
 function OnMasterServerEvent(mse:MasterServerEvent){
 	if(mse == MasterServerEvent.RegistrationSucceeded){
 		Debug.Log("Registered Server!");
+	}
+}
+
+function OnFailedToConnectToMasterServer(info : NetworkConnectionError) {
+		Debug.Log("Could not connect to master server: "+ info);
+}
+
+function OnFailedToConnect(){
+	if(!Network.isClient){
+		startServer();
+		//refreshing = false;
+		Debug.Log("Starting Server");
 	}
 }
 
@@ -67,6 +76,12 @@ function setPlayable(){
 	Play.playable = true;
 }
 
+function OnPlayerConnected(){
+	/*MasterServer.UnregisterHost();
+	MasterServer.ClearHostList();*/
+	/*Network.maxConnections = -1;*/
+}
+
 function OnPlayerDisconnected(){
 	Play.playable = false;
 }
@@ -79,22 +94,17 @@ function OnDisconnectedFromServer(){
 function OnGUI(){
 	if(!Network.isClient && !Network.isServer){
 		if(GUI.Button(Rect(btnX,btnY,btnW,btnH), "Play!")){
+			Debug.Log(hostData);
 			if(hostData != null){
 				for(var i:int = 0; i<hostData.length; i++){
-					if(!Network.isClient){
+					if(!Network.isClient && hostData[i] != null){
 						Network.Connect(hostData[i]);
 						Debug.Log("Joining Game");
-						refreshing = false;
-						break;
-					}
-					else{
-						break;
 					}
 				}
 			}
 			else if(!Network.isClient){
 				startServer();
-				refreshing = false;
 				Debug.Log("Starting Server");
 			}
 		}

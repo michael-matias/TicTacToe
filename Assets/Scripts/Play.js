@@ -117,7 +117,6 @@ function addLoss(){
 function checkBoardTie() : boolean{
 	for(var i : int = 0; i < 9; i ++){
 		if(gameMatrix[i] == -1){
-			Debug.Log("teste");
 			return false;
 		}
 	}
