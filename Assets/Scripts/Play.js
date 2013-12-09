@@ -27,8 +27,16 @@ public var winCount : GUIText;
 public var lossCount : GUIText;
 public var tieCount : GUIText;
 
+public var cruz : GameObject;
+public var bola : GameObject;
+public var msgGanhou : GameObject;
+public var msgPerdeu : GameObject;
+
+var cruzesEBolas : GameObject[];
+var mensagens : GameObject[];
+
 function Start () {
-	restartBoard();
+	restartBoard();	
 }
 
 function Update () {
@@ -49,15 +57,15 @@ function Update () {
             		playerTurn = false;
             		networkView.RPC("changeTurn", RPCMode.Others);
             		if(playerID == 0){
-            			networkView.RPC("changeColor", RPCMode.All, Vector3(Color.blue.r,Color.blue.g,Color.blue.b), hit.collider.gameObject.name);
+            			//networkView.RPC("changeColor", RPCMode.All, Vector3(Color.blue.r,Color.blue.g,Color.blue.b), hit.collider.gameObject.name);
+            			networkView.RPC("meteCruz", RPCMode.All, hit.collider.gameObject.transform.position);
             		}
             		else{
-            			networkView.RPC("changeColor", RPCMode.All, Vector3(Color.red.r,Color.red.g,Color.red.b), hit.collider.gameObject.name);
+            			//networkView.RPC("changeColor", RPCMode.All, Vector3(Color.red.r,Color.red.g,Color.red.b), hit.collider.gameObject.name);
+            			networkView.RPC("meteBola", RPCMode.All, hit.collider.gameObject.transform.position);
             		}
-            		if(checkBoardWin()){
-            			win++;
-            			networkView.RPC("addLoss", RPCMode.Others);	
-            			networkView.RPC("restartBoard", RPCMode.All);	
+            		if(checkBoardWin()){            			
+            			ganhou();            			
             		}
             		if(checkBoardTie()){
             			networkView.RPC("addTie", RPCMode.All);	
@@ -68,6 +76,30 @@ function Update () {
         }
     }
 }
+
+
+function ganhou() {
+	win++;	
+	Instantiate(msgGanhou,Vector3(0.5,0.5,0),Quaternion.identity);
+	networkView.RPC("addLoss", RPCMode.Others);		
+	
+	yield WaitForSeconds(3);
+	
+    networkView.RPC("restartBoard", RPCMode.All);	
+}
+
+
+@RPC
+function meteCruz(pos : Vector3){
+	var ola : GameObject = Instantiate(cruz,pos,Quaternion.identity);
+	ola.SetActive(true);	
+}
+@RPC
+function meteBola(pos : Vector3){
+	var ola : GameObject = Instantiate(bola,pos,Quaternion.identity);
+	ola.SetActive(true);	
+}
+
 
 @RPC
 function changeColor(color : Vector3, blockName : String){
@@ -89,16 +121,17 @@ function changeTurn(){
 function restartBoard(){
 	for(var i : int = 0; i < 9; i ++){
 		gameMatrix[i] = -1;
-	}
-	B0.renderer.material = M1;
-	B1.renderer.material = M2;
-	B2.renderer.material = M1;
-	B3.renderer.material = M2;
-	B4.renderer.material = M1;
-	B5.renderer.material = M2;
-	B6.renderer.material = M1;
-	B7.renderer.material = M2;
-	B8.renderer.material = M1;
+	}	
+	
+	cruzesEBolas = GameObject.FindGameObjectsWithTag ("jogadores");
+ 	mensagens = GameObject.FindGameObjectsWithTag("mensagens");
+ 	
+	for(i = 0 ; i < cruzesEBolas.length ; i ++)
+		Destroy(cruzesEBolas[i]);
+		
+	for(i = 0 ; i < mensagens.length ; i ++)
+		Destroy(mensagens[i]);
+		
 	winCount.text = win.ToString();
 	lossCount.text = loss.ToString();
 	tieCount.text = tie.ToString();
@@ -111,7 +144,11 @@ function addTie(){
 
 @RPC
 function addLoss(){
+	Instantiate(msgPerdeu,Vector3(0.5,0.5,0),Quaternion.identity);
 	loss++;
+	playable = false;
+	yield WaitForSeconds(3);
+	playable = true;
 }
 
 function checkBoardTie() : boolean{
